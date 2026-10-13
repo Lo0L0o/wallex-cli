@@ -1,0 +1,2 @@
+"""Market CLI application package."""
+
