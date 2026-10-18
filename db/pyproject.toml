@@ -11,10 +11,24 @@ dependencies = [
     "aiosqlite>=0.20",
     "mysql-connector-python>=8.0",
     "httpx>=0.27",
+    "SQLAlchemy[asyncio]>=2.0,<2.1",
+    "alembic>=1.13,<2",
+    "pydantic>=2.9,<3",
+    "redis>=5,<7",
+    "APScheduler>=3.10,<4",
+    "starlette>=0.47,<1",
+    "uvicorn>=0.35,<1",
 ]
 
+[project.optional-dependencies]
+dev = ["ruff>=0.11"]
+
 [project.scripts]
-market-cli = "market.main:main"
+market-cli = "market.main:cli"
+market-web = "market.presentation.web:serve"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"market.presentation" = ["static/*.html", "static/*.css", "static/*.js"]

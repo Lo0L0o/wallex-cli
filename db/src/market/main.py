@@ -1,5 +1,5 @@
-import logging
 import asyncio
+import logging
 import sys
 from collections.abc import Sequence
 
@@ -23,6 +23,9 @@ async def main(argv: Sequence[str] | None = None) -> int:
             await app.close()
 
 
-if __name__ == "__main__":
-    sys.exit(asyncio.run (main()))
+def cli() -> int:
+    return asyncio.run(main())
 
+
+if __name__ == "__main__":
+    sys.exit(cli())
