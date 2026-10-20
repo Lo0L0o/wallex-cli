@@ -10,6 +10,7 @@ class MarketQuery(BaseModel):
     search: str = Field(default="", max_length=50)
     quote: str = Field(default="USDT", pattern=r"^(USDT|TMN)$")
     limit: int = Field(default=10, ge=1, le=100)
+    featured: bool = False
 
     @field_validator("search", "quote", mode="before")
     @classmethod

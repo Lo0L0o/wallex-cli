@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>جست‌وجو و نمودار بازار</title>
+  <link rel="stylesheet" href="/website/assets/style.css">
+  <script src="/website/assets/app.js" defer></script>
+</head>
+<body data-page="search">
+  <main>
+    <header>
+      <div><p class="eyebrow">WALLEX / MARKET MONITOR</p><h1>جست‌وجو و نمودار</h1>
+        <p class="muted">نماد بازار را بنویسید تا قیمت و تاریخچه آن نمایش داده شود.</p></div>
+      <span id="status" role="status">آماده جست‌وجو</span>
+    </header>
+    <nav class="page-nav" aria-label="صفحه‌های برنامه">
+      <a href="/website/">بازارهای معروف</a>
+      <a href="/website/search" aria-current="page">جست‌وجو و نمودار</a>
+    </nav>
+    <section class="toolbar" aria-label="جست‌وجوی بازار">
+      <label>جست‌وجوی نماد<input id="search" type="search" placeholder="BTC یا BTCUSDT" maxlength="50" dir="ltr"></label>
+      <label>ارز مبنا<select id="quote"><option value="USDT">تتر · USDT</option><option value="TMN">تومان · TMN</option></select></label>
+      <button id="reload" type="button">جست‌وجو</button>
+    </section>
+    <p id="error" role="alert" hidden></p>
+    <section class="panel">
+      <div class="section-title"><h2 id="list-title">نتایج جست‌وجو</h2><span id="updated" class="muted"></span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>نماد</th><th>آخرین قیمت</th><th>حجم معاملات ۲۴ساعته</th><th>تاریخچه</th></tr></thead>
+        <tbody id="markets"><tr><td colspan="4">برای شروع، نماد یک بازار را جست‌وجو کنید.</td></tr></tbody>
+      </table></div>
+    </section>
+    <section class="panel" aria-label="نمودار تاریخچه قیمت">
+      <div class="section-title"><h2 id="chart-title">تاریخچه قیمت</h2><span id="chart-unit" class="muted"></span></div>
+      <p id="chart-message" class="muted">پس از جست‌وجو، نمودار بازار نمایش داده می‌شود.</p>
+      <svg id="chart" viewBox="0 0 900 280" role="img" aria-label="نمودار قیمت‌های ذخیره‌شده" hidden></svg>
+      <div class="chart-info"><span id="chart-start"></span><span id="chart-end"></span></div>
+    </section>
+    <footer>نمودار براساس قیمت‌های ثبت‌شده در این برنامه است.</footer>
+  </main>
+</body>
+</html>

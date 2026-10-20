@@ -1,15 +1,188 @@
-# Market Monitor
+# Wallex Market Monitor
 
-Run from this folder in PowerShell:
+برنامه قیمت بازارهای والکس را دریافت و در SQLite ذخیره می‌کند. صفحه اول ۱۰ بازار معروف را نمایش می‌دهد و صفحه دوم برای جست‌وجوی نماد و دیدن نمودار تاریخچه است.
+
+## پیش‌نیازها
+
+- Python نسخه 3.10 یا بالاتر
+- Poetry نسخه 2 یا بالاتر
+- اینترنت برای دریافت اطلاعات والکس
+- Docker فقط در صورتی که بخواهی Redis را با فایل Compose اجرا کنی
+
+دستورهای این راهنما برای PowerShell ویندوز هستند. برای اجرای برنامه لازم نیست محیط مجازی را دستی فعال کنی؛ `poetry run` فرمان را در محیط پروژه اجرا می‌کند.
+
+نصب از ابتدا، ساخت دیتابیس و اجرای وب با Python 3.14.7 و Poetry 2.5.1 روی ویندوز بررسی شده‌اند.
+
+## نصب Poetry
+
+اگر `poetry --version` نسخه را نشان می‌دهد، این مرحله را رد کن. در غیر این صورت:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -e .
-.\.venv\Scripts\alembic.exe upgrade head
-$env:WEB_PORT = "8000"
-.\.venv\Scripts\market-web.exe
+py -m pip install --user pipx
+py -m pipx ensurepath
 ```
 
-Open http://127.0.0.1:8000/website/.
+ترمینال را ببند و یک PowerShell جدید باز کن. سپس:
 
-Redis (optional for local use): `docker compose up -d redis`.
-Without Redis, the application reads saved prices from SQLite.
+```powershell
+pipx install poetry
+poetry --version
+```
+
+اگر هنوز `pipx` شناخته نشد، به‌جای فرمان نصب بالا از `py -m pipx install poetry` استفاده کن و دوباره ترمینال را باز کن.
+
+## ورود به پوشه درست پروژه
+
+اگر مخزن را تازه دریافت می‌کنی:
+
+```powershell
+git clone https://github.com/Lo0L0o/wallex-cli.git
+cd .\wallex-cli\db
+```
+
+پوشه پروژه داخل پوشه مخزن قرار دارد. باید فایل‌های `pyproject.toml` و `alembic.ini` را در مسیر فعلی ببینی.
+
+روی سیستم فعلی، پروژه از قبل اینجاست:
+
+```powershell
+cd C:\Users\Administrator\Desktop\db\db
+```
+
+یکی از این دو مسیر را انتخاب کن؛ لازم نیست هر دو بخش را اجرا کنی. اگر محیط مجازی یک پروژه دیگر در ترمینال فعال است، اول با `deactivate` از آن خارج شو.
+
+## نصب وابستگی‌ها
+
+از داخل پوشه پروژه:
+
+```powershell
+poetry env use python
+poetry install
+poetry env info --path
+```
+
+Poetry محیط `.venv` را داخل پروژه می‌سازد یا از محیط موجود همین پروژه استفاده می‌کند. نسخه‌های وابستگی‌ها از `poetry.lock` خوانده می‌شوند. این فایل باید همراه پروژه در Git باشد.
+
+اگر چند نسخه پایتون داری، در فرمان اول می‌توانی به‌جای `python` مسیر دقیق پایتون نصب‌شده یا نسخه‌ای مثل `3.14` را بدهی. نسخه انتخاب‌شده باید حداقل 3.10 باشد.
+
+## آماده‌سازی دیتابیس
+
+```powershell
+$env:DB_DRIVER = "sqlite"
+$env:SQLITE_PATH = "market.db"
+poetry run migrate
+```
+
+در اولین اجرا، دیتابیس و جدول‌ها ساخته می‌شوند. در اجراهای بعدی فقط migrationهای اجرا‌نشده اعمال می‌شوند. اگر دیتابیس قبلی داری، ابتدا سرور را متوقف کن و از آن نسخه پشتیبان بگیر. این فرمان `alembic upgrade head` را از طریق اسکریپت پروژه اجرا می‌کند.
+
+## اجرای وب‌برنامه
+
+```powershell
+$env:WEB_PORT = "8000"
+poetry run serve
+```
+
+پس از دیدن پیام زیر، سرور آماده است:
+
+```text
+Uvicorn running on http://127.0.0.1:8000
+```
+
+صفحه‌ها:
+
+- بازارهای معروف: http://127.0.0.1:8000/website/
+- جست‌وجو و نمودار: http://127.0.0.1:8000/website/search
+- بررسی دسترسی به دیتابیس: http://127.0.0.1:8000/health
+
+ترمینال سرور باید باز بماند. برای توقف، `Ctrl + C` بزن. برای اجرای بعدی، از همین پوشه `poetry run serve` را اجرا کن؛ نصب دوباره لازم نیست. اگر نام یا تعریف اسکریپت‌ها تغییر کرد، `poetry install` را دوباره اجرا کن.
+
+در شروع سرور یک دریافت انجام می‌شود؛ بعد زمان‌بندی به‌طور پیش‌فرض هر ۱۰ دقیقه اجرا می‌شود. کش حداکثر ۶۰ ثانیه اعتبار دارد و درخواست کاربر بعد از قدیمی‌شدن داده می‌تواند دریافت جدید را آغاز کند. اگر دریافت شکست بخورد، اطلاعات قبلی با برچسب قدیمی نمایش داده می‌شود. بدون اطلاعات قبلی، سرویس خطای 503 می‌دهد.
+
+تاریخچه از دریافت‌های موفق همین برنامه جمع می‌شود؛ داده تاریخی گذشته صرافی وارد نمی‌شود. در ابتدای کار ممکن است نمودار فقط یک نقطه داشته باشد.
+
+## اجرای Redis
+
+برای اجرای کامل کش، در ترمینال دیگری و از همان پوشه پروژه بزن:
+
+```powershell
+docker compose up -d redis
+```
+
+یا آدرس یک Redis موجود را در ترمینال سرور تنظیم کن:
+
+```powershell
+$env:REDIS_URL = "redis://127.0.0.1:6379/0"
+poetry run serve
+```
+
+بدون Redis هم برنامه اجرا می‌شود و از SQLite استفاده می‌کند. هشدار `Market cache read failed` یا `Market cache write failed` یعنی کش در دسترس نیست؛ به‌تنهایی به معنی از کار افتادن وب‌برنامه نیست. برای خاموش کردن سرویس Redis ساخته‌شده با Compose از `docker compose down` استفاده کن.
+
+## اجرای فرمان‌های خط فرمان
+
+در یک ترمینال دیگر، داخل پوشه پروژه:
+
+```powershell
+poetry run market-cli sync
+poetry run market-cli markets
+poetry run market-cli search BTC
+poetry run market-cli price BTCUSDT
+```
+
+فرمان `sync` دریافت و ذخیره دستی انجام می‌دهد. وب‌برنامه جدید از SQLite استفاده می‌کند؛ تنظیمات MySQL برای مسیر قدیمی CLI باقی مانده‌اند.
+
+## اسکریپت‌های پروژه و نقش Poetry
+
+اسکریپت‌ها در بخش استاندارد `[project.scripts]` داخل `pyproject.toml` تعریف شده‌اند و Poetry آن‌ها را هنگام نصب ایجاد می‌کند:
+
+```toml
+[project.scripts]
+serve = "market.presentation.web:serve"
+migrate = "market.presentation.manage:migrate"
+market-cli = "market.main:cli"
+market-web = "market.presentation.web:serve"
+```
+
+`poetry install` وابستگی‌ها و خود پروژه را نصب می‌کند. `poetry run serve` تابع `serve` را اجرا می‌کند؛ `poetry run migrate` تابع آماده‌سازی دیتابیس را. دستور `poetry run market-web` هم مثل `serve` است و برای سازگاری با فرمان قبلی حفظ شده.
+
+`poetry lock` برای به‌روزرسانی نسخه‌های حل‌شده در فایل قفل است؛ برای هر بار اجرای برنامه لازم نیست. ابزار اختیاری بررسی کد را می‌توان با `poetry install -E dev` نصب کرد. محیط مجازی و دیتابیس داخل Git قرار نمی‌گیرند.
+
+## تنظیمات
+
+مقادیر پیش‌فرض برای اجرای محلی کافی هستند. برای تغییر، در همان ترمینال پیش از اجرای سرور متغیر محیطی تنظیم کن:
+
+| متغیر | پیش‌فرض | کاربرد |
+| --- | --- | --- |
+| `WEB_HOST` | `127.0.0.1` | آدرس شنود سرور |
+| `WEB_PORT` | `8000` | پورت وب |
+| `SQLITE_PATH` | `market.db` | مسیر دیتابیس، نسبت به پوشه اجرا |
+| `REDIS_URL` | `redis://127.0.0.1:6379/0` | اتصال کش |
+| `CACHE_TTL_SECONDS` | `60` | اعتبار کش، از ۱ تا ۶۰ ثانیه |
+| `SYNC_INTERVAL_SECONDS` | `600` | فاصله دریافت دوره‌ای، از ۱ تا ۶۰۰ ثانیه |
+| `MARKET_API_URL` | آدرس والکس در `.env.example` | منبع قیمت‌ها |
+
+فایل `.env.example` فقط نمونه است. برنامه فایل `.env` را خودکار نمی‌خواند؛ ساختن یا کپی‌کردن آن به‌تنهایی تنظیمات را عوض نمی‌کند. متغیرهای PowerShell فقط در همان ترمینال باقی می‌مانند.
+
+## خطاهای رایج
+
+- **Poetry فایل پروژه را پیدا نمی‌کند:** داخل پوشه حاوی `pyproject.toml` برو؛ در نسخه دریافت‌شده از GitHub معمولاً `wallex-cli\db` است.
+- **فرمان serve یا migrate شناخته نمی‌شود:** از همین پوشه `poetry install` را اجرا کن؛ `--no-root` نگذار چون خود پروژه و اسکریپت‌ها هم باید نصب شوند.
+- **Database migration required یا no such table:** سرور را متوقف و `poetry run migrate` را با همان `SQLITE_PATH` اجرا کن.
+- **خطای 10048:** پورت در اختیار برنامه دیگری است؛ شاید اجرای قبلی هنوز روشن باشد. همان سرور را متوقف کن یا پورت دیگری تنظیم کن.
+- **والکس در دسترس نیست:** اینترنت و آدرس API را بررسی کن. با `poetry run market-cli sync` می‌توانی نتیجه دریافت دستی را ببینی.
+- **خطای import در VS Code:** با `Python: Select Interpreter` فایل `.venv\Scripts\python.exe` داخل همین پروژه را انتخاب کن. مسیر درست را `poetry env info --path` نشان می‌دهد.
+
+## اجرای سریع بعد از نصب Poetry
+
+از داخل پوشه پروژه، بدون نیاز به فعال‌سازی دستی محیط:
+
+```powershell
+poetry install
+poetry run migrate
+poetry run serve
+```
+
+این مسیر از تنظیمات پیش‌فرض SQLite و پورت ۸۰۰۰ استفاده می‌کند؛ اگر در ترمینال قبلاً متغیر محیطی دیگری تنظیم کرده‌ای، همان مقدار بر پیش‌فرض اولویت دارد.
+
+## منابع
+
+- https://python-poetry.org/docs/basic-usage/
+- https://python-poetry.org/docs/pyproject/#scripts

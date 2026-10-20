@@ -7,32 +7,29 @@
   <link rel="stylesheet" href="/website/assets/style.css">
   <script src="/website/assets/app.js" defer></script>
 </head>
-<body>
+<body data-page="home">
   <main>
     <header>
       <div><p class="eyebrow">WALLEX / MARKET MONITOR</p><h1>دیده‌بان بازار</h1>
-        <p class="muted">قیمت‌های والکس، همراه با تاریخچه ثبت‌شده در این برنامه</p></div>
+        <p class="muted">قیمت ۱۰ بازار شناخته‌شده در والکس</p></div>
       <span id="status" role="status">در حال دریافت...</span>
     </header>
-    <section class="toolbar" aria-label="فیلتر بازارها">
-      <label>جست‌وجوی نماد<input id="search" type="search" placeholder="BTC، ETH و ..." maxlength="50" dir="ltr"></label>
+    <nav class="page-nav" aria-label="صفحه‌های برنامه">
+      <a href="/website/" aria-current="page">بازارهای معروف</a>
+      <a href="/website/search">جست‌وجو و نمودار</a>
+    </nav>
+    <section class="toolbar" aria-label="ارز مبنای بازارها">
       <label>ارز مبنا<select id="quote"><option value="USDT">تتر · USDT</option><option value="TMN">تومان · TMN</option></select></label>
       <button id="reload" type="button">بازخوانی</button>
     </section>
     <p id="error" role="alert" hidden></p>
     <section class="panel">
-      <div class="section-title"><h2 id="list-title">۲۰ بازار برتر</h2><span id="updated" class="muted">هنوز داده‌ای دریافت نشده</span></div>
-      <p class="muted small">مرتب‌شده براساس حجم معاملات ۲۴ساعته در ارز مبنای انتخاب‌شده. برای مشاهده نمودار، یک بازار را انتخاب کنید.</p>
+      <div class="section-title"><h2 id="list-title">۱۰ بازار معروف</h2><span id="updated" class="muted">هنوز داده‌ای دریافت نشده</span></div>
+      <p class="muted small">برای جست‌وجوی بازارها و مشاهده نمودار به صفحه دوم بروید.</p>
       <div class="table-wrap"><table>
         <thead><tr><th>نماد</th><th>آخرین قیمت</th><th>حجم معاملات ۲۴ساعته</th><th>تاریخچه</th></tr></thead>
         <tbody id="markets"><tr><td colspan="4">در حال بارگذاری بازارها...</td></tr></tbody>
       </table></div>
-    </section>
-    <section class="panel" aria-label="نمودار تاریخچه قیمت">
-      <div class="section-title"><h2 id="chart-title">تاریخچه قیمت</h2><span id="chart-unit" class="muted"></span></div>
-      <p id="chart-message" class="muted">یک بازار را از جدول انتخاب کنید.</p>
-      <svg id="chart" viewBox="0 0 900 280" role="img" aria-label="نمودار قیمت‌های ذخیره‌شده" hidden></svg>
-      <div class="chart-info"><span id="chart-start"></span><span id="chart-end"></span></div>
     </section>
     <footer>کش حداکثر ۶۰ ثانیه · همگام‌سازی پس‌زمینه حداکثر هر ۱۰ دقیقه · تاریخچه از زمان شروع ثبت داده‌ها</footer>
   </main>

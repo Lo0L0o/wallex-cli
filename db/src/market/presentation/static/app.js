@@ -1,8 +1,41 @@
 const byId = (id) => document.getElementById(id);
+const searchPage = document.body.dataset.page === 'search';
+const parameters = new URLSearchParams(window.location.search);
 let selected = null;
 let listRequest = null;
 let historyRequest = null;
 let searchTimer;
+
+if (searchPage) {
+  const symbol = parameters.get('symbol') || '';
+  const quote = parameters.get('quote') || 'USDT';
+  if (['USDT', 'TMN'].includes(quote)) byId('quote').value = quote;
+  if (/^[A-Z0-9]{1,50}$/.test(symbol)) {
+    selected = symbol;
+    byId('search').value = symbol;
+  }
+}
+
+function clearChart(message) {
+  historyRequest?.abort();
+  byId('chart').replaceChildren();
+  byId('chart').setAttribute('hidden', '');
+  byId('chart-title').textContent = 'تاریخچه قیمت';
+  byId('chart-unit').textContent = '';
+  byId('chart-start').textContent = '';
+  byId('chart-end').textContent = '';
+  byId('chart-message').hidden = false;
+  byId('chart-message').textContent = message;
+}
+
+function tableMessage(message) {
+  const row = document.createElement('tr');
+  const cell = document.createElement('td');
+  cell.colSpan = 4;
+  cell.textContent = message;
+  row.append(cell);
+  byId('markets').replaceChildren(row);
+}
 
 function numberText(value) {
   const [whole, fraction] = String(value).split('.');
@@ -28,25 +61,39 @@ async function loadMarkets() {
   listRequest?.abort();
   const controller = new AbortController();
   listRequest = controller;
-  const search = byId('search').value.trim();
+  const search = searchPage ? byId('search').value.trim() : '';
   const quote = byId('quote').value;
-  const query = new URLSearchParams({ search, quote, limit: search ? '100' : '20' });
+  if (searchPage) {
+    clearChart(search ? 'در حال دریافت نمودار...' : 'پس از جست‌وجو، نمودار بازار نمایش داده می‌شود.');
+    if (!search) {
+      selected = null;
+      tableMessage('برای شروع، نماد یک بازار را جست‌وجو کنید.');
+      byId('list-title').textContent = 'نتایج جست‌وجو';
+      byId('updated').textContent = '';
+      byId('status').textContent = 'آماده جست‌وجو';
+      byId('status').classList.remove('stale');
+      byId('error').hidden = true;
+      return;
+    }
+  }
+  const query = new URLSearchParams({ search, quote, limit: searchPage ? '100' : '10' });
+  if (!searchPage) query.set('featured', 'true');
   try {
     const data = await getJSON('/api/v1/markets?' + query, controller.signal);
     byId('error').hidden = true;
-    byId('list-title').textContent = search ? 'نتایج جست‌وجو (' + data.total + ')' : '۲۰ بازار برتر';
+    byId('list-title').textContent = searchPage ? 'نتایج جست‌وجو (' + data.total + ')' : '۱۰ بازار معروف';
     byId('updated').textContent = 'آخرین دریافت: ' + dateText(data.updated_at);
     byId('status').textContent = data.stale ? 'داده ذخیره‌شده؛ به‌روزرسانی موقتاً در دسترس نیست' : 'قیمت‌ها به‌روز هستند';
     byId('status').classList.toggle('stale', data.stale);
     const body = byId('markets');
     body.replaceChildren();
+    if (searchPage && !data.items.some((market) => market.symbol === selected)) {
+      const exact = data.items.find((market) => market.symbol === search.toUpperCase());
+      selected = exact?.symbol || data.items[0]?.symbol || null;
+    }
     if (!data.items.length) {
-      const cell = document.createElement('td');
-      cell.colSpan = 4;
-      cell.textContent = 'بازاری با این عبارت پیدا نشد.';
-      const row = document.createElement('tr');
-      row.append(cell);
-      body.append(row);
+      tableMessage('بازاری با این عبارت پیدا نشد.');
+      if (searchPage) clearChart('بازاری برای نمایش نمودار پیدا نشد.');
     }
     for (const market of data.items) {
       const row = document.createElement('tr');
@@ -58,10 +105,13 @@ async function loadMarkets() {
         row.append(cell);
       }
       const cell = document.createElement('td');
-      const button = document.createElement('button');
+      const button = document.createElement(searchPage ? 'button' : 'a');
       button.textContent = 'نمودار';
       button.setAttribute('aria-label', 'نمودار ' + market.symbol);
-      button.addEventListener('click', () => {
+      if (!searchPage) {
+        button.className = 'market-link';
+        button.href = '/website/search?' + new URLSearchParams({ symbol: market.symbol, quote: market.quote_asset });
+      } else button.addEventListener('click', () => {
         selected = market.symbol;
         body.querySelectorAll('tr').forEach((r) => r.classList.remove('selected'));
         row.classList.add('selected');
@@ -71,17 +121,14 @@ async function loadMarkets() {
       row.append(cell);
       body.append(row);
     }
-    if (!selected && data.items.length) {
-      selected = data.items[0].symbol;
-      body.firstElementChild.classList.add('selected');
-    }
-    if (selected) loadHistory(selected, quote);
+    if (searchPage && selected) loadHistory(selected, quote);
   } catch (error) {
     if (error.name === 'AbortError') return;
     byId('error').textContent = error.message;
     byId('error').hidden = false;
     byId('status').textContent = 'خطا در دریافت اطلاعات';
     byId('status').classList.add('stale');
+    if (searchPage) clearChart('دریافت نمودار انجام نشد. دوباره تلاش کنید.');
   }
 }
 
@@ -102,7 +149,7 @@ async function loadHistory(symbol, quote) {
     const points = data.points;
     const chart = byId('chart');
     chart.replaceChildren();
-    chart.hidden = !points.length;
+    chart.toggleAttribute('hidden', !points.length);
     byId('chart-message').hidden = points.length > 1;
     byId('chart-message').textContent = points.length
       ? 'فعلاً یک قیمت ثبت شده است؛ با دریافت‌های بعدی نمودار کامل‌تر می‌شود.'
@@ -136,16 +183,27 @@ async function loadHistory(symbol, quote) {
     }
   } catch (error) {
     if (error.name === 'AbortError') return;
-    byId('chart').hidden = true;
+    byId('chart').setAttribute('hidden', '');
     byId('chart-message').hidden = false;
     byId('chart-message').textContent = error.message;
   }
 }
 
-byId('search').addEventListener('input', () => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(loadMarkets, 300);
-});
+if (searchPage) {
+  byId('search').addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    listRequest?.abort();
+    historyRequest?.abort();
+    selected = null;
+    searchTimer = setTimeout(loadMarkets, 300);
+  });
+  byId('search').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      clearTimeout(searchTimer);
+      loadMarkets();
+    }
+  });
+}
 byId('quote').addEventListener('change', () => { selected = null; loadMarkets(); });
 byId('reload').addEventListener('click', loadMarkets);
 loadMarkets();

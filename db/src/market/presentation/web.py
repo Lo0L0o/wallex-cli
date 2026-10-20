@@ -35,6 +35,7 @@ from market.presentation.schemas import (
 
 logger = logging.getLogger("market.web")
 static = Path(__file__).with_name("static")
+featured_assets = ("BTC", "ETH", "BNB", "SOL", "XRP", "DOGE", "ADA", "TRX", "DOT", "AVAX")
 
 
 def error_response(request: Request, status: int, code: str, message: str, details=None):
@@ -70,13 +71,18 @@ async def markets(request: Request):
         for m in result.snapshot.markets
         if m.quote_asset == query.quote and query.search in m.symbol
     ]
-    matches.sort(key=lambda m: (-m.quote_volume, m.symbol))
+    if query.featured:
+        symbols = [asset + query.quote for asset in featured_assets]
+        by_symbol = {m.symbol: m for m in matches}
+        matches = [by_symbol[symbol] for symbol in symbols if symbol in by_symbol]
+    else:
+        matches.sort(key=lambda m: (-m.quote_volume, m.symbol))
     return JSONResponse(
         {
             "items": [market_data(m) for m in matches[: query.limit]],
             "total": len(matches),
             "quote": query.quote,
-            "ranking": "quote_volume_24h",
+            "ranking": "featured" if query.featured else "quote_volume_24h",
             **metadata(result),
         }
     )
@@ -120,6 +126,10 @@ async def health(request: Request):
 
 async def website(request: Request):
     return FileResponse(static / "index.html")
+
+
+async def search_page(request: Request):
+    return FileResponse(static / "search.html")
 
 
 async def website_asset(request: Request):
@@ -176,6 +186,7 @@ def create_app(settings: Settings | None = None, container=None, schedule: bool 
         Route("/", home),
         Route("/health", health),
         Route("/website/", website),
+        Route("/website/search", search_page),
         Route("/website/assets/{name}", website_asset),
         Route("/api/v1/markets", markets),
         Route("/api/v1/markets/{symbol}/history", market_history),
